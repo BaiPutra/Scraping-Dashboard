@@ -4,24 +4,27 @@ import { Footer, Header } from '../../components/molekul/molekul'
 import Create from '../CreatePost/create'
 import Detail from '../DetailPost/detail'
 import Home from '../Home'
+import './mainApp.scss'
 
 const MainApp = () => {
   return (
-    <div>
+    <div className='main-app-wrapper'>
       <Header />
-      <Router>
-        <Switch>
+      <div className='content-wrapper'>
+        <Router>
+          <Switch>
             <Route path='/create-post'>
-                <Create />
+              <Create />
             </Route>
             <Route path='/detail-post'>
-                <Detail />
+              <Detail />
             </Route>
             <Route path='/'>
-                <Home />
+              <Home />
             </Route>
-        </Switch>
-      </Router>
+          </Switch>
+        </Router>
+      </div>
       <Footer />
     </div>
   )
