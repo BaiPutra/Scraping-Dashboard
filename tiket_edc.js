@@ -15,7 +15,7 @@ var urlBase2 =
 async function getLinks() {
   const links = [];
 
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 1; i++) {
     let url = urlBase1 + [i * 15] + urlBase2;
     links.push(url);
   }
@@ -29,7 +29,6 @@ async function getData(url, page) {
   await page.setDefaultNavigationTimeout(0);
   await page.goto(url, { waitUntil: "networkidle2" });
 
-  // get the data
   let data = await page.evaluate(() => {
     let results = [];
     let items = document.querySelectorAll(".tabledata > tbody > tr");
@@ -75,7 +74,6 @@ async function scrape() {
   const page = await browser.newPage();
   const dataEDC = [];
 
-  // login session
   await page.goto("http://mms.bri.co.id/index.php/user/login");
   await page.waitForSelector("#cboxClose");
   await page.click("#cboxClose");
@@ -100,14 +98,15 @@ con.connect(async function (err) {
 
   var sql =
     "INSERT INTO data_edc (ticket_id, merchant, mid, tid, peruntukan, entry_ticket, update_ticket, jenis_masalah, status, kanwil, pemasang, target_hari) VALUES ?";
+
   var sql2 = `
     DELETE FROM data_edc 
     WHERE ticket_id = 0 OR id IN(
         SELECT id FROM (SELECT id, ROW_NUMBER()
             OVER(PARTITION BY ticket_id ORDER BY ticket_id) AS row_num
         FROM data_edc) AS temp_table WHERE row_num > 1
-    );
-    `;
+    )`;
+
   var sql3 = `
     UPDATE data_edc
     SET pemasang = CASE WHEN pemasang = 'KC Jakarta SAHARJO' THEN 'KC JKT Saharjo'
@@ -130,8 +129,8 @@ con.connect(async function (err) {
 
   var sql4 = `
     UPDATE data_edc t1 
-	INNER JOIN jenis_tiket t2 
-		ON t1.jenis_masalah = t2.jenis_masalah
+	  INNER JOIN jenis_tiket t2 
+		  ON t1.jenis_masalah = t2.jenis_masalah
     INNER JOIN pemasang t3
     	ON t1.pemasang = t3.nama_pemasang
     SET t1.jenis_masalah = t2.id, t1.pemasang = t3.id;
@@ -139,11 +138,15 @@ con.connect(async function (err) {
 
   var sql5 = `
     INSERT INTO tiket_edc
-    SELECT * FROM data_edc
+    SELECT * FROM data_edc AS d
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM tiket_edc AS t
+      WHERE t.ticket_id = d.ticket_id
+    )
     `;
 
   var data = await scrape();
-  // console.log(data);
 
   con.query(sql, [data], function (err) {
     if (err) throw err;
