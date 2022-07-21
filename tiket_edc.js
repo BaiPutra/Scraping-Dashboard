@@ -10,7 +10,7 @@ var con = mysql.createConnection({
 
 var urlBase1 = "http://mms.bri.co.id/index.php/maintenance/cm_report_new/";
 var urlBase2 =
-  "?id=&jenis=&user_entry=&mid=&sub_jenis=&tgl_sort=tgl_entry&tid=&kanwil=I&tgl_awal=2022-07-01&tgl_akhir=2022-07-31&status=CLOSED&pemasang=&submit=Generate";
+  "?id=&jenis=&user_entry=&mid=&sub_jenis=&tgl_sort=tgl_update&tid=&kanwil=I&tgl_awal=2022-07-01&tgl_akhir=2022-07-31&status=CLOSED&pemasang=&submit=Generate";
 
 async function getLinks() {
   const links = [];
