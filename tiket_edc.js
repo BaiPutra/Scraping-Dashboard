@@ -15,7 +15,7 @@ var urlBase2 =
 async function getLinks() {
   const links = [];
 
-  for (let i = 0; i < 1; i++) {
+  for (let i = 0; i < 32; i++) {
     let url = urlBase1 + [i * 15] + urlBase2;
     links.push(url);
   }
@@ -35,29 +35,25 @@ async function getData(url, page) {
     items.forEach((item) => {
       results.push([
         item.querySelector("td:nth-child(1)") &&
-          item.querySelector("td:nth-child(1)").textContent,
-        item.querySelector("td:nth-child(2)") &&
-          item.querySelector("td:nth-child(2)").textContent,
-        item.querySelector("td:nth-child(3)") &&
-          item.querySelector("td:nth-child(3)").textContent,
+          item.querySelector("td:nth-child(1)").textContent,  // ticketID
         item.querySelector("td:nth-child(4)") &&
-          item.querySelector("td:nth-child(4)").textContent,
-        item.querySelector("td:nth-child(5)") &&
-          item.querySelector("td:nth-child(5)").textContent,
-        item.querySelector("td:nth-child(6)") &&
-          item.querySelector("td:nth-child(6)").textContent,
-        item.querySelector("td:nth-child(7)") &&
-          item.querySelector("td:nth-child(7)").textContent,
+          item.querySelector("td:nth-child(4)").textContent,  // tid
+        item.querySelector("td:nth-child(2)") &&
+          item.querySelector("td:nth-child(2)").textContent,  // lokasi
         item.querySelector("td:nth-child(8)") &&
-          item.querySelector("td:nth-child(8)").textContent,
-        item.querySelector("td:nth-child(9)") &&
-          item.querySelector("td:nth-child(9)").textContent,
-        item.querySelector("td:nth-child(10)") &&
-          item.querySelector("td:nth-child(10)").textContent,
+          item.querySelector("td:nth-child(8)").textContent,  // jenis masalah
         item.querySelector("td:nth-child(11)") &&
-          item.querySelector("td:nth-child(11)").textContent,
+          item.querySelector("td:nth-child(11)").textContent, // pemasang
+        item.querySelector("td:nth-child(6)") &&
+          item.querySelector("td:nth-child(6)").textContent,  // entry ticket
+        item.querySelector("td:nth-child(7)") &&
+          item.querySelector("td:nth-child(7)").textContent,  // update ticket
+        item.querySelector("td:nth-child(9)") &&
+          item.querySelector("td:nth-child(9)").textContent,  // status
+        item.querySelector("td:nth-child(10)") &&
+          item.querySelector("td:nth-child(10)").textContent,  // eskalasi
         item.querySelector("td:nth-child(12)") &&
-          item.querySelector("td:nth-child(12)").textContent,
+          item.querySelector("td:nth-child(12)").textContent,  // target hari
       ]);
     });
     return results;
@@ -97,15 +93,15 @@ con.connect(async function (err) {
   console.log("Connected");
 
   var sql =
-    "INSERT INTO data_edc (ticket_id, merchant, mid, tid, peruntukan, entry_ticket, update_ticket, jenis_masalah, status, kanwil, pemasang, target_hari) VALUES ?";
+    "INSERT INTO data_edc (ticketID, tid, lokasi, jenisMasalah, pemasang, entryTicket, updateTicket, status, eskalasi, target_hari) VALUES ?";
 
   var sql2 = `
     DELETE FROM data_edc 
-    WHERE ticket_id = 0 OR id IN(
+    WHERE ticketID = 0 OR id IN(
         SELECT id FROM (SELECT id, ROW_NUMBER()
-            OVER(PARTITION BY ticket_id ORDER BY ticket_id) AS row_num
+            OVER(PARTITION BY ticketID ORDER BY ticketID) AS row_num
         FROM data_edc) AS temp_table WHERE row_num > 1
-    )`;
+  )`;
 
   var sql3 = `
     UPDATE data_edc
@@ -120,31 +116,39 @@ con.connect(async function (err) {
                         WHEN pemasang = 'KC Jakarta KEBAYORAN BARU' THEN 'KC JKT Kebayoran Baru'
                         WHEN pemasang = 'KC Jakarta RADIO DALAM' THEN 'KC JKT Radio Dalam'
                         WHEN pemasang = 'KC Jakarta WARUNG BUNCIT' THEN 'KC JKT Warung Buncit'
+                        WHEN pemasang = 'KANCA BOGOR PAJAJARAN' THEN 'KC BOGOR PAJAJARAN'
+                        WHEN pemasang = 'KC Jakarta Pancoran' THEN 'KC PANCORAN'
+                        WHEN pemasang = 'Cikampek' THEN 'KC Cikampek'
+                        WHEN pemasang = 'KANCA CIKARANG' THEN 'KC Cikarang'
+                        WHEN pemasang = 'bekasi' THEN 'KC Bekasi'
+                        WHEN pemasang = 'Jakarta Warung Buncit' THEN 'KC JKT Warung Buncit'
                     END
-    WHERE pemasang IN ('KC Jakarta SAHARJO', 'KC DEPOK', 'KC Jakarta PASAR MINGGU',
+    WHERE pemasang IN ('KC Jakarta SAHARJO', 'KC Jakarta PASAR MINGGU',
         'KC Jakarta PANGLIMA POLIM', 'KC Jakarta KRAMAT JATI', 'KC Jakarta KALIBATA', 
         'KC Jakarta GATOT SUBROTO', 'KC Jakarta TB SIMATUPANG', 'KC Jakarta KEBAYORAN BARU', 
-        'KC Jakarta RADIO DALAM', 'KC Jakarta WARUNG BUNCIT', 'KANCA DEPOK');
-    `;
+        'KC Jakarta RADIO DALAM', 'KC Jakarta WARUNG BUNCIT', 'KANCA DEPOK', 
+        'KANCA BOGOR PAJAJARAN', 'KC Jakarta Pancoran', 'Jakarta Warung Buncit', 
+        'Cikampek', 'KANCA CIKARANG', 'bekasi')
+  `;
 
   var sql4 = `
     UPDATE data_edc t1 
 	  INNER JOIN jenis_tiket t2 
-		  ON t1.jenis_masalah = t2.jenis_masalah
+		  ON t1.jenisMasalah = t2.jenis_masalah
     INNER JOIN pemasang t3
     	ON t1.pemasang = t3.nama_pemasang
-    SET t1.jenis_masalah = t2.id, t1.pemasang = t3.id;
-    `;
+    SET t1.jenisMasalah = t2.id, t1.pemasang = t3.id, t1.bagian = 'EDC';
+  `;
 
   var sql5 = `
-    INSERT INTO tiket_edc
+    INSERT INTO tiket
     SELECT * FROM data_edc AS d
     WHERE NOT EXISTS (
       SELECT 1
-      FROM tiket_edc AS t
-      WHERE t.ticket_id = d.ticket_id
+      FROM tiket AS t
+      WHERE t.ticketID = d.ticketID
     )
-    `;
+  `;
 
   var data = await scrape();
 
@@ -172,4 +176,5 @@ con.connect(async function (err) {
     if (err) throw err;
     console.log({ res });
   });
+  con.end()
 });
