@@ -28,7 +28,7 @@ async function scrape() {
   });
 
   let data_all = [];
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 10; i++) {
     await page.waitForTimeout(3000);
     await page.waitForSelector("#ext-gen60");
     await page.click("#ext-gen60");
