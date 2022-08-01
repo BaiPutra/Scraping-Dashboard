@@ -5,7 +5,7 @@ var con = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "",
-  database: "scraping",
+  database: "ite",
 });
 
 async function scrape() {
@@ -28,7 +28,7 @@ async function scrape() {
   });
 
   let data_all = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 30; i++) {
     await page.waitForTimeout(3000);
     await page.waitForSelector("#ext-gen60");
     await page.click("#ext-gen60");
@@ -40,14 +40,14 @@ async function scrape() {
       );
       items.forEach((item) => {
         results.push([
-          item.querySelector("td:nth-child(1)").textContent, // ticketID
+          item.querySelector("td:nth-child(1)").textContent, // tiketID
           item.querySelector("td:nth-child(5)").textContent, // tid
           item.querySelector("td:nth-child(6)").textContent, // bagian
           item.querySelector("td:nth-child(10)").textContent, // lokasi
           item.querySelector("td:nth-child(7)").textContent, // jenis masalah
           item.querySelector("td:nth-child(12)").textContent, // pemasang
-          item.querySelector("td:nth-child(4)").textContent, // entry ticket
-          item.querySelector("td:nth-child(22)").textContent, // update ticket
+          item.querySelector("td:nth-child(4)").textContent, // entry tiket
+          item.querySelector("td:nth-child(22)").textContent, // update tiket
           item.querySelector("td:nth-child(24)").textContent, // status
           item.querySelector("td:nth-child(23)").textContent, // eskalasi
         ]);
@@ -67,34 +67,28 @@ con.connect(async function (err) {
   console.log("Connected");
 
   var sql =
-    "INSERT INTO data_ATM_CRM (ticketID, tid, bagian, lokasi, jenisMasalah, pemasang, entryTicket, updateTicket, status, eskalasi) VALUES ?";
+    "INSERT IGNORE INTO data_atm (tiketID, tid, bagian, lokasi, jenisMasalah, pemasang, entryTiket, updateTiket, status, eskalasi) VALUES ?";
 
   var sql2 = `
-    DELETE FROM data_atm_crm 
-    WHERE eskalasi IN ('E-CHANNEL', 'BRISAT', 'JARINGAN', 'DIVISI OPT') 
-    OR jenisMasalah = '[TTA - OPEN]' OR status IN ('CANCEL', 'CANCEL_MA') 
-    OR id IN(
-      SELECT id FROM (SELECT id, ROW_NUMBER() 
-        OVER(PARTITION BY ticketID ORDER BY ticketID) AS row_num 
-      FROM data_atm_crm) AS temp_table WHERE row_num > 1 
-    )`;
+    DELETE FROM data_atm
+    WHERE eskalasi NOT IN ('KANWIL BRI', 'VENDOR MESIN')
+    OR jenisMasalah = '[TTA - OPEN]' OR status NOT IN ('DONE', 'DONE_TRX')
+    `;
 
   var sql3 = `
-    UPDATE data_atm_crm t1 
-    INNER JOIN jenis_tiket t2 
-      ON t1.jenisMasalah = t2.jenis_masalah
-    INNER JOIN pemasang t3
-      ON t1.pemasang = t3.nama_pemasang
-    SET t1.jenisMasalah = t2.id, t1.target_hari = t2.target_hari, t1.pemasang = t3.id
+    UPDATE data_atm t1 
+    INNER JOIN jenisTiket t2 
+      ON t1.jenisMasalah = t2.jenisMasalah
+    SET t1.jenisMasalah = t2.jenisID
     `;
 
   var sql4 = `
     INSERT INTO tiket
-    SELECT * FROM data_atm_crm AS d 
+    SELECT tiketID, tid, jenisMasalah, entryTiket, updateTiket, status, eskalasi FROM data_atm AS d 
     WHERE NOT EXISTS ( 
       SELECT 1 
       FROM tiket AS t 
-      WHERE t.ticketID = d.ticketID
+      WHERE t.tiketID = d.tiketID
     )`;
 
   var data = await scrape();
@@ -119,5 +113,6 @@ con.connect(async function (err) {
     if (err) throw err;
     console.log({ res });
   });
+  
   con.end();
 });
