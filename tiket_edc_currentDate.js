@@ -61,22 +61,18 @@ async function getData(url, page) {
           item.querySelector("td:nth-child(9)").textContent, // status
         item.querySelector("td:nth-child(10)") &&
           item.querySelector("td:nth-child(10)").textContent, // eskalasi
-        item.querySelector("td:nth-child(12)") &&
-          item.querySelector("td:nth-child(12)").textContent, // target hari
       ]);
     });
-    var selectResult = [];
-    for (let i = 1; i < 16; i++) {
-      selectResult.push(results[i]);
-    }
+    return results;
+  })
 
-    return selectResult;
-  });
-
+  let dataEDC = data.filter((data) => data[1] !== null);
+  console.log(dataEDC);
+  
   return {
-    data,
-  };
-}
+    dataEDC,
+  }
+};
 
 async function scrape() {
   var get_links = await getLinks();
@@ -94,7 +90,7 @@ async function scrape() {
 
   for (let link of get_links.links) {
     var data_EDC = await getData(link, page);
-    Array.prototype.push.apply(dataEDC, data_EDC.data);
+    Array.prototype.push.apply(dataEDC, data_EDC.dataEDC);
   }
 
   await browser.close();
@@ -113,14 +109,16 @@ con.connect(async function (err) {
     UPDATE data_edc t1 
 	  INNER JOIN jenisTiket t2 
 		  ON t1.jenisMasalah = t2.jenisMasalah
-    SET t1.jenisMasalah = t2.jenisID, t1.bagian = 'EDC';
+    SET t1.jenisMasalah = t2.jenisID;
   `;
 
   var sql3 = `
     INSERT INTO tiket
-    SELECT tiketID, d.tid, jenisMasalah, entryTiket, updateTiket, status, eskalasi
+    SELECT tiketID, d.tid, d.jenisMasalah, entryTiket, updateTiket, status, eskalasi
     FROM data_edc d JOIN perangkat p
     ON d.tid = p.tid
+    JOIN jenistiket j
+    ON d.jenisMasalah = j.jenisID
     WHERE NOT EXISTS (
       SELECT 1
       FROM tiket t

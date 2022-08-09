@@ -32,7 +32,7 @@ async function scrape() {
   await page.click("div.x-combo-list-item:nth-child(2)");
 
   let data_all = [];
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 147; i++) {
     await page.waitForTimeout(3000);
     await page.waitForSelector("#ext-gen60");
     await page.click("#ext-gen60");
@@ -88,11 +88,13 @@ con.connect(async function (err) {
 
   var sql4 = `
     INSERT INTO tiket
-    SELECT tiketID, tid, jenisMasalah, entryTiket, updateTiket, status, eskalasi FROM data_atm AS d 
-    WHERE NOT EXISTS ( 
-      SELECT 1 
-      FROM tiket AS t 
-      WHERE t.tiketID = d.tiketID
+    SELECT tiketID, d.tid, jenisMasalah, entryTiket, updateTiket, status, eskalasi, peruntukan
+    FROM data_atm d JOIN perangkat p
+    ON d.tid = p.tid
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM tiket t
+        WHERE t.tiketID = d.tiketID
     )`;
 
   var data = await scrape();

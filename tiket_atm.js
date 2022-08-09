@@ -27,8 +27,14 @@ async function scrape() {
     waitUntil: "networkidle2",
   });
 
+  await page.waitForTimeout(3000);
+  await page.waitForSelector("#ext-comp-1009");
+  await page.type("#ext-comp-1009", "599", { delay: 100 });
+  await page.waitForTimeout(1000);
+  await page.keyboard.press("Enter");
+
   let data_all = [];
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 200; i++) {
     await page.waitForTimeout(3000);
     await page.waitForSelector("#ext-gen60");
     await page.click("#ext-gen60");
@@ -84,11 +90,13 @@ con.connect(async function (err) {
 
   var sql4 = `
     INSERT INTO tiket
-    SELECT tiketID, tid, jenisMasalah, entryTiket, updateTiket, status, eskalasi FROM data_atm AS d 
-    WHERE NOT EXISTS ( 
-      SELECT 1 
-      FROM tiket AS t 
-      WHERE t.tiketID = d.tiketID
+    SELECT tiketID, d.tid, jenisMasalah, entryTiket, updateTiket, status, eskalasi, peruntukan
+    FROM data_atm d JOIN perangkat p
+    ON d.tid = p.tid
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM tiket t
+        WHERE t.tiketID = d.tiketID
     )`;
 
   var data = await scrape();
@@ -113,6 +121,6 @@ con.connect(async function (err) {
     if (err) throw err;
     console.log({ res });
   });
-  
+
   con.end();
 });

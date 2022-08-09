@@ -10,12 +10,12 @@ var con = mysql.createConnection({
 
 var urlBase1 = "http://mms.bri.co.id/index.php/maintenance/cm_report_new/";
 var urlBase2 =
-  "?id=&jenis=&user_entry=&mid=&sub_jenis=&tgl_sort=tgl_update&tid=&kanwil=I&tgl_awal=2022-01-01&tgl_akhir=2022-07-31&status=CLOSED&pemasang=&submit=Generate";
+  "?id=&jenis=&user_entry=&mid=&sub_jenis=&tgl_sort=tgl_update&tid=&kanwil=I&tgl_awal=2022-01-01&tgl_akhir=2022-08-31&status=CLOSED&pemasang=&submit=Generate";
 
 async function getLinks() {
   const links = [];
 
-  for (let i = 0; i < 1; i++) {
+  for (let i = 0; i < 218; i++) {
     let url = urlBase1 + [i * 15] + urlBase2;
     links.push(url);
   }
@@ -52,19 +52,17 @@ async function getData(url, page) {
           item.querySelector("td:nth-child(9)").textContent, // status
         item.querySelector("td:nth-child(10)") &&
           item.querySelector("td:nth-child(10)").textContent, // eskalasi
-        // item.querySelector("td:nth-child(12)") && item.querySelector("td:nth-child(12)").textContent, // target hari
+        item.querySelector("td:nth-child(5)") && item.querySelector("td:nth-child(5)").textContent, // peruntukan
       ]);
     });
-    var selectResult = [];
-    for (let i = 1; i < 16; i++) {
-      selectResult.push(results[i]);
-    }
-
-    return selectResult;
+    return results;
   });
 
+  let dataEDC = data.filter((data) => data[1] !== null);
+  console.log(dataEDC);
+
   return {
-    data,
+    dataEDC,
   };
 }
 
@@ -84,7 +82,7 @@ async function scrape() {
 
   for (let link of get_links.links) {
     var data_EDC = await getData(link, page);
-    Array.prototype.push.apply(dataEDC, data_EDC.data);
+    Array.prototype.push.apply(dataEDC, data_EDC.dataEDC);
   }
 
   await browser.close();
@@ -97,20 +95,22 @@ con.connect(async function (err) {
   console.log("Connected");
 
   var sql =
-    "INSERT IGNORE INTO data_edc (tiketID, tid, lokasi, jenisMasalah, pemasang, entryTiket, updateTiket, status, eskalasi) VALUES ?";
+    "INSERT IGNORE INTO data_edc (tiketID, tid, lokasi, jenisMasalah, pemasang, entryTiket, updateTiket, status, eskalasi, peruntukan) VALUES ?";
 
   var sql2 = `
     UPDATE data_edc t1 
 	  INNER JOIN jenisTiket t2 
 		  ON t1.jenisMasalah = t2.jenisMasalah
-    SET t1.jenisMasalah = t2.jenisID, t1.bagian = 'EDC';
+    SET t1.jenisMasalah = t2.jenisID;
   `;
 
   var sql3 = `
     INSERT INTO tiket
-    SELECT tiketID, d.tid, jenisMasalah, entryTiket, updateTiket, status, eskalasi
+    SELECT tiketID, d.tid, d.jenisMasalah, entryTiket, updateTiket, status, eskalasi, peruntukan
     FROM data_edc d JOIN perangkat p
     ON d.tid = p.tid
+    JOIN jenistiket j
+    ON d.jenisMasalah = j.jenisID
     WHERE NOT EXISTS (
       SELECT 1
       FROM tiket t
